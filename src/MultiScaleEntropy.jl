@@ -2,6 +2,32 @@ module MultiScaleEntropy
 
 using RecurrenceAnalysis
 
+local_rr(x::AbstractMatrix{Bool}) = [countnz(x[:,t]) for t in (1:size(x)[2])]
+
+# Note: in this function x is assumed to be previously normalized and embedded, radius is absolute
+function sampled_local_rr(x, radius, scale=1; kwargs...)
+    n = div(size(x)[2], scale)
+    recurrences = zeros(scale, n)
+    # normalize = false by default
+    !haskey(kwargs, :normalize) && kwargs[:normalize] = false
+    for s = 1:scale
+        xs = x[s:scale:end,:]
+        rmat = recurrencematrix(xs, radius; kwargs...)
+        recurrences[s,:] = local_rr(rmat)
+    end
+    recurrences
+end
+
+apen_factors(recurrences) = prod(recurrences)
+sampen_factors(recurrences) = sum(recurrences)
+comp_sampen_factors(recurrences) = prod(sum(recurrences,2))
+
+
+function entropyfactors(x, m, delay)
+    xe = embed(x/std(x), m, delay)
+    xe_plus = [xe[1:end-delay,:] xe[1+delay:end,end]]
+end
+
 function approximateentropy(x, m, r)
     xe_plus = embed(x, m+1, 1)
     xe = [xe_plus[:,1:end-1]; xe_plus[end,2:end]]
