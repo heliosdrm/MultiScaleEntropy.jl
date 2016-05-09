@@ -6,19 +6,20 @@ using RecurrenceAnalysis
 local_rr(x::AbstractMatrix{Bool}) = [countnz(x[:,t])-1 for t in (1:size(x)[2])]
 
 # Note: in this function x is assumed to be previously normalized and embedded, radius is absolute
-function sampled_local_rr(x, radius, scale=1, delayed=false)
+function sampled_local_rr(x, r, scale=1, delayed=false)
     n = div(size(x)[1], scale)
+    !delayed && rem(size(x)[1], scale) > 0 && (n += 1)
     recurrences = zeros(n, delayed?scale:1)
     for s = 1:size(recurrences)[2]
         xs = x[s:scale:scale*n,:]
-        rmat = recurrencematrix(xs, radius)
+        rmat = recurrencematrix(xs, r, normalize=false)
         recurrences[:,s] = local_rr(rmat)
     end
     recurrences
 end
 
 function full_local_rr(x, radius, scale)
-    rmat = recurrencematrix(x, radius)
+    rmat = recurrencematrix(x, radius, normalize=false)
     recurrences = hcat(local_rr(rmat))
 end
 
@@ -59,6 +60,9 @@ function multiscaleentropy(x, m, r, bounds; filtf=moving_average, normbyscale=fa
     ent
 end
 
+
+# To delete ...
+
 function approximateentropy(x, m, r)
     xe_plus = embed(x, m+1, 1)
     xe = [xe_plus[:,1:end-1]; xe_plus[end,2:end]]
@@ -75,10 +79,11 @@ end
 function sampleentropy_nd(x, m, r, delay=1)
     xe_plus = embed(x, m+1, delay)
     xe = [xe_plus[:,1:end-1]; xe_plus[end-delay+1:end,2:end]]
+    xe = xe[1:end-delay,:]
     n = size(xe)[1]
-    rmat = recurrencematrix(xe, std(xe)*r)
-    b = recurrencerate(rmat, theiler=1)*n*(n-1)
-    rmat = recurrencematrix(xe_plus, std(xe_plus)*r)
+    rmat = recurrencematrix(xe, r, normalize=false)
+    b = recurrencerate(rmat, theiler=1)*(n-delay)*(n-delay-1)
+    rmat = recurrencematrix(xe_plus, r, normalize=false)
     a = recurrencerate(rmat, theiler=1)*(n-delay)*(n-delay-1)
     (a, b)
 end
