@@ -64,3 +64,4 @@ function multiscaleentropy(x, m, r, bounds; filtf=moving_average, normbyscale=fa
     ent
 end
 
+end
