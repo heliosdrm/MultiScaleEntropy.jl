@@ -7,24 +7,26 @@ export multiscaleentropy,
        arithmean, geommean, mixmean
 
 # Local recurrences (excluding self-recurrence)
-local_rr(x::AbstractMatrix{Bool}, exclude=1) = [countnz(x[t+exclude:end,t]) for t in (1:size(x)[2])]
+local_rr(x::AbstractMatrix{Bool}, exclude=1) = [countnz(x[1:t-exclude,t+exclude:end,t]) for t in (1:size(x)[2])]
 
 # Note: in this function x is assumed to be previously normalized and embedded, radius is absolute
 function sampled_local_rr(x, r, scale=1, delayed=false)
     n = div(size(x)[1], scale)
-    !delayed && rem(size(x)[1], scale) > 0 && (n += 1)
+    if !delayed && rem(size(x)[1], scale) > 0
+        n += 1
+    end
     recurrences = zeros(n, delayed?scale:1)
     for s = 1:size(recurrences)[2]
         xs = x[s:scale:scale*n,:]
-        rmat = recurrencematrix(xs, r, normalize=false)
+        rmat = recurrencematrix(xs, r, scale=1)
         recurrences[:,s] = local_rr(rmat)
     end
     recurrences
 end
 
 function full_local_rr(x, radius, scale)
-    rmat = recurrencematrix(x, radius, normalize=false)
-    recurrences = hcat(local_rr(rmat, scale))
+    rmat = recurrencematrix(x, radius, scale=1)
+    recurrences = hcat(local_rr(rmat,1))
 end
 
 # Auxiliary functions
